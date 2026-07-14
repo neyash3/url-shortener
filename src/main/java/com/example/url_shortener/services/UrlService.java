@@ -32,12 +32,26 @@ public class UrlService {
     ShortURL shortUrl;
 
     //Returns an error message when url fails validation
-    if(!isValidUrl(longUrl)) return new ResponseEntity<>(new InvalidResponse(400, "URL failed validation"), HttpStatus.BAD_REQUEST);
+    if(isInvalidUrl(longUrl)) return new ResponseEntity<>(new InvalidResponse(400, "URL failed validation"), HttpStatus.BAD_REQUEST);
 
     var tmpUrl = shortUrlRepository.findByUrl(longUrl);
 
-    shortUrl = tmpUrl == null ? new ShortURL(generateId(), longUrl) : tmpUrl;
+    shortUrl = tmpUrl == null ? shortUrlRepository.save(new ShortURL(generateId(), longUrl)) : tmpUrl;
+
     return new ResponseEntity<>(shortUrl,HttpStatus.OK);
+  }
+
+  public ResponseEntity<Object> generateShortUrl(String longUrl, String customUrl){
+    if(isInvalidUrl(longUrl)) return new ResponseEntity<>(new InvalidResponse(400, "URL failed validation"), HttpStatus.BAD_REQUEST);
+    if(isInvalidCustomUrl(customUrl)) return new ResponseEntity<>(new InvalidResponse(400,"Custom URL failed validation"), HttpStatus.BAD_REQUEST);
+
+
+    var tmpUrl = shortUrlRepository.findById(customUrl);
+    if(tmpUrl.isPresent()) {
+      return new ResponseEntity<>(new InvalidResponse(400, "Provided customUrl already exists"), HttpStatus.BAD_REQUEST);
+    }
+    ShortURL shortURL = shortUrlRepository.save(new ShortURL(customUrl, longUrl));
+    return new ResponseEntity<>(shortURL, HttpStatus.OK);
   }
 
   public ResponseEntity<Object> get(String id) {
@@ -59,8 +73,13 @@ public class UrlService {
     return id;
   }
 
-  private boolean isValidUrl(String longUrl){
+  private boolean isInvalidUrl(String longUrl){
     Pattern pattern = Pattern.compile("^(https?://)?([A-z0-9]{2,6}\\.[A-z0-9]{1,63}\\.[A-z]{2,6})(/?[A-z0-9/-]+)?$");
-    return pattern.matcher(longUrl).matches();
+    return !pattern.matcher(longUrl).matches();
+  }
+
+  private boolean isInvalidCustomUrl(String customUrl){
+    Pattern pattern = Pattern.compile("^[A-z0-9\\-]{4,16}$");
+    return !pattern.matcher(customUrl).matches();
   }
 }

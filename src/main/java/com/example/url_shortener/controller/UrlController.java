@@ -14,7 +14,15 @@ public class UrlController {
 
   @ResponseBody
   @PostMapping("/")
-  public ResponseEntity<Object> shorten (@Valid @RequestBody ShortenRequest request){ return urlService.generateShortUrl(request.getLongUrl()); }
+  public ResponseEntity<Object> shorten (@Valid @RequestBody ShortenRequest request){
+    String longUrl = request.getLongUrl();
+    String customUrl = request.getCustomUrl();
+    if(customUrl == null||customUrl.isEmpty()){
+      return urlService.generateShortUrl(longUrl);
+    }else{
+      return urlService.generateShortUrl(longUrl, customUrl);
+    }
+  }
 
   @GetMapping("/{id}")
   public ResponseEntity<Object> redirect(@PathVariable String id){
