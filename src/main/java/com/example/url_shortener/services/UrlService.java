@@ -3,6 +3,11 @@ import com.example.url_shortener.models.InvalidResponse;
 import com.example.url_shortener.repository.ShortUrlRepository;
 import com.example.url_shortener.models.ShortURL;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -11,18 +16,16 @@ import java.net.URI;
 @Service
 public class UrlService {
   private final ShortUrlRepository shortUrlRepository;
+  private final MongoTemplate mongoTemplate;
 
-  public UrlService(ShortUrlRepository shortUrlRepository) {
+  public UrlService(ShortUrlRepository shortUrlRepository, MongoTemplate mongoTemplate) {
     this.shortUrlRepository = shortUrlRepository;
+    this.mongoTemplate = mongoTemplate;
   }
 
   public ResponseEntity<Object> generateShortUrl(String longUrl) {
     ShortURL shortUrl;
-
-    var tmpUrl = shortUrlRepository.findByUrl(longUrl);
-
-    shortUrl = tmpUrl == null ? shortUrlRepository.save(new ShortURL(generateId(), longUrl)) : tmpUrl;
-
+    shortUrl = shortUrlRepository.save(new ShortURL(generateId(), longUrl));
     return new ResponseEntity<>(shortUrl, HttpStatus.OK);
   }
 
@@ -38,14 +41,31 @@ public class UrlService {
   }
 
   public ResponseEntity<Object> get(String id) {
-    return shortUrlRepository.findById(id)
-        .map(shortURL -> ResponseEntity
-            .status(HttpStatus.FOUND)
-            .location(URI.create(shortURL.getLongURL()))
-            .build())
-        .orElse(ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(new InvalidResponse(404, new Exception("Provided id could not be found"))));
+    Query query = new Query(Criteria.where("_id").is(id));
+    Update update = new Update().inc("visits",1);
+
+    FindAndModifyOptions options = FindAndModifyOptions.options().returnNew(true);
+    ShortURL tmpUrl = mongoTemplate.findAndModify(query, update, options, ShortURL.class);
+
+    if(!(tmpUrl == null)){
+      return ResponseEntity
+          .status(HttpStatus.FOUND)
+          .location(URI.create(tmpUrl.getLongURL()))
+          .build();
+    }
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(new InvalidResponse(404, new Exception("Provided id could not be found")));
+
+//    return shortUrlRepository.findById(id)
+//        .map(shortURL -> ResponseEntity
+//            .status(HttpStatus.FOUND)
+//            .location(URI.create(shortURL.getLongURL()))
+//            .build())
+//        .orElse(ResponseEntity
+//            .status(HttpStatus.NOT_FOUND)
+//            .body(new InvalidResponse(404, new Exception("Provided id could not be found"))));
+
   }
 
   private String generateId() {

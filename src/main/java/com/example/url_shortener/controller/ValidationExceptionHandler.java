@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class ValidationExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Object> handleValidationErrors(MethodArgumentNotValidException nve){
-    return new ResponseEntity<Object>(new InvalidResponse(400, nve), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(new InvalidResponse(400, nve), HttpStatus.BAD_REQUEST);
   }
+
 }
