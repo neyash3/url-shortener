@@ -9,6 +9,7 @@ public class ShortURL {
 
   private String longURL;
 
+  //TODO:Add analytics for specific Urls (i.e. number of visits, time of creation)
   public ShortURL(String id, String longURL){
     super();
     this.id = id;
