@@ -1,4 +1,5 @@
 package com.example.url_shortener.controller;
+import com.example.url_shortener.exceptions.NotFoundException;
 import com.example.url_shortener.models.ShortenRequest;
 import com.example.url_shortener.services.UrlService;
 import jakarta.validation.Valid;
@@ -25,7 +26,17 @@ public class UrlController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<Object> redirect(@PathVariable String id){
-    return urlService.get(id);
+  public ResponseEntity<Object> redirect(@PathVariable String id) throws NotFoundException {
+    return urlService.getRedirect(id);
+  }
+
+  @GetMapping("/{id}/analytics")
+  public ResponseEntity<Object> getAnalytics(@PathVariable String id) throws NotFoundException {
+    return urlService.getUrl(id);
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Object> delete(@PathVariable String id){
+    return urlService.deleteUrl(id);
   }
 }

@@ -1,4 +1,6 @@
 package com.example.url_shortener.services;
+import com.example.url_shortener.exceptions.DuplicateException;
+import com.example.url_shortener.exceptions.NotFoundException;
 import com.example.url_shortener.models.InvalidResponse;
 import com.example.url_shortener.repository.ShortUrlRepository;
 import com.example.url_shortener.models.ShortURL;
@@ -12,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class UrlService {
@@ -25,7 +29,7 @@ public class UrlService {
 
   public ResponseEntity<Object> generateShortUrl(String longUrl) {
     ShortURL shortUrl;
-    shortUrl = shortUrlRepository.save(new ShortURL(generateId(), longUrl));
+    shortUrl = shortUrlRepository.save(new ShortURL(generateId(), longUrl, LocalDateTime.now()));
     return new ResponseEntity<>(shortUrl, HttpStatus.OK);
   }
 
@@ -33,14 +37,14 @@ public class UrlService {
     var tmpUrl = shortUrlRepository.findById(customUrl);
 
     if (tmpUrl.isPresent()) {
-      return new ResponseEntity<>(new InvalidResponse(400, new Exception("Custom Url already exists")), HttpStatus.BAD_REQUEST);
+      throw new DuplicateException("Provided customUrl already exists");
     }
 
-    ShortURL shortURL = shortUrlRepository.save(new ShortURL(customUrl, longUrl));
+    ShortURL shortURL = shortUrlRepository.save(new ShortURL(customUrl, longUrl, LocalDateTime.now()));
     return new ResponseEntity<>(shortURL, HttpStatus.OK);
   }
 
-  public ResponseEntity<Object> get(String id) {
+  public ResponseEntity<Object> getRedirect(String id) throws NotFoundException {
     Query query = new Query(Criteria.where("_id").is(id));
     Update update = new Update().inc("visits",1);
 
@@ -53,9 +57,10 @@ public class UrlService {
           .location(URI.create(tmpUrl.getLongURL()))
           .build();
     }
-    return ResponseEntity
-        .status(HttpStatus.NOT_FOUND)
-        .body(new InvalidResponse(404, new Exception("Provided id could not be found")));
+    throw new NotFoundException("Provided id could not be found");
+//    return ResponseEntity
+//        .status(HttpStatus.NOT_FOUND)
+//        .body(new InvalidResponse(404, new Exception("Provided id could not be found")));
 
 //    return shortUrlRepository.findById(id)
 //        .map(shortURL -> ResponseEntity
@@ -66,6 +71,19 @@ public class UrlService {
 //            .status(HttpStatus.NOT_FOUND)
 //            .body(new InvalidResponse(404, new Exception("Provided id could not be found"))));
 
+  }
+
+  public ResponseEntity<Object> deleteUrl(String id){
+    shortUrlRepository.deleteById(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  public ResponseEntity<Object> getUrl(String id) throws NotFoundException {
+    Optional<ShortURL> tmpUrl = shortUrlRepository.findById(id);
+    if (tmpUrl.isPresent()) {
+      return new ResponseEntity<>(tmpUrl, HttpStatus.OK);
+    }
+    throw new NotFoundException("Provided id could not be found");
   }
 
   private String generateId() {

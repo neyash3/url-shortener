@@ -1,4 +1,5 @@
 package com.example.url_shortener.models;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
@@ -11,12 +12,12 @@ public class ShortURL {
   private int visits;
   private final LocalDateTime timeOfCreation;
 
-  public ShortURL(String id, String longURL){
+  public ShortURL(String id, String longURL, LocalDateTime timeOfCreation){
     super();
     this.id = id;
     this.longURL = longURL;
     this.visits = 0;
-    this.timeOfCreation = LocalDateTime.now();
+    this.timeOfCreation = timeOfCreation;
   }
 
   //Getters and setters
